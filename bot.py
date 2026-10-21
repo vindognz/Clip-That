@@ -2,6 +2,7 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from db import Database
 
 load_dotenv() # loads DISCORD_TOKEN into an env variable
 
@@ -13,8 +14,15 @@ class ClipBot(commands.Bot):
         # setup for slash commands
         super().__init__(command_prefix = commands.when_mentioned, intents = intents)
 
+        # one database shared by the whole bot. cogs can access it via self.bot.db
+        self.db = Database("clip_that.db")
+
     async def setup_hook(self):
         # runs once before the bot connects
+
+        # load our cogs
+        await self.load_extension("cogs.consent")
+        
         # registers the slash commands
         await self.tree.sync()
 

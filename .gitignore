@@ -1,4 +1,5 @@
 .env
 env/
 __pycache_/
+cogs/__pycache__/
 *.db

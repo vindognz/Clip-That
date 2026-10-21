@@ -1,0 +1,46 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+class Consent(commands.Cog):
+    """ /opt-in and /opt-out.
+        Consent is per user, per server, and the default is opted out.
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="opt-in", description="Let Clip That use your voice in clips")
+    @app_commands.guild_only()
+    async def opt_in(self, interaction: discord.Interaction):
+        newly = self.bot.db.opt_in(interaction.guild_id, interaction.user.id)
+
+        if newly:
+            msg = (
+                "You're opted in! When you're in a call with me, your voice is buffered in memory, "
+                "and if someone says \"clip that\", **your voice may be posted in #clip-that**.\n"
+                "Use `/opt-out` at any time to stop being recorded."
+            )
+        else:
+            msg = "You're already opted in. Use `/opt-out` to stop being recorded"
+
+        await interaction.response.send_message(msg, ephemeral=True)
+
+    @app_commands.command(name="opt-out", description="Stop Clip That from using your voice")
+    @app_commands.guild_only()
+    async def opt_out(self, interaction: discord.Interaction):
+        was_opted_in = self.bot.db.opt_out(interaction.guild_id, interaction.user.id)
+
+        if was_opted_in:
+            msg = (
+                "You're opted out. I'll stop using your voice right away. "
+                "Clips that were already posted will stay posted."
+            )
+        else:
+            msg = "You're already opted out (that's the default)."
+
+        await interaction.response.send_message(msg, ephemeral=True)
+
+async def setup(bot: commands.Bot):
+    # discord.py calls this when we load the extension
+    await bot.add_cog(Consent(bot))
