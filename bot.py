@@ -15,13 +15,14 @@ class ClipBot(commands.Bot):
         super().__init__(command_prefix = commands.when_mentioned, intents = intents)
 
         # one database shared by the whole bot. cogs can access it via self.bot.db
-        self.db = Database("clip_that.db")
+        self.db: Database = Database("clip_that.db")
 
     async def setup_hook(self):
         # runs once before the bot connects
 
         # load our cogs
         await self.load_extension("cogs.consent")
+        await self.load_extension("cogs.listen")
         
         # registers the slash commands
         await self.tree.sync()

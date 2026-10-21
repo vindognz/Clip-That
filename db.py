@@ -45,7 +45,7 @@ class Database:
 
         return cur.fetchone() is not None
 
-    def opted_in_users(self, guild_id: int, user_id: int) -> bool:
-        cur = self.connection.execute("SELECT user_id FROM consent WHERE guild_id = ?", (guild_id))
+    def opted_in_users(self, guild_id: int) -> bool:
+        cur = self.connection.execute("SELECT user_id FROM consent WHERE guild_id = ?", (guild_id,))
 
-        return {row[0] for row in cur.fetchall}
+        return {row[0] for row in cur.fetchall()}
