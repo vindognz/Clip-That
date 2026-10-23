@@ -37,3 +37,44 @@ def render_track(entries: list, window_start: float, seconds: float) -> bytes:
         cursor = end
 
     return bytes(track)
+
+def render_track_rtp(entries: list, window_start: float, seconds: float) -> bytes:
+    """ entries: list of (arrival_time, rtp_timestamp, ssrc, pcm_chunk)
+    """
+
+    num_bytes = int(BYTES_PER_SECOND * seconds)
+    size = int((num_bytes // BYTES_PER_FRAME) * BYTES_PER_FRAME)
+    track = bytearray(size)
+
+    if not entries:
+        return bytes(track)
+
+    unwrapped = []
+    total = 0
+    prev = entries[0][1]
+
+    for _, rtp_timestamp, _, _ in entries:
+        delta = (rtp_timestamp - prev) & 0xFFFFFFFF
+
+        if delta >= 2**31:
+            delta -= 2**32
+
+        total += delta
+        unwrapped.append(total)
+
+        prev = rtp_timestamp
+
+    anchor = min(arrival - u / SAMPLE_RATE for (arrival, _, _, _), u in zip(entries, unwrapped))
+    anchor_frames = round((anchor - window_start) * SAMPLE_RATE)
+
+    for (_, _, _, chunk), u in zip(entries, unwrapped):
+        position = (anchor_frames + u) * BYTES_PER_FRAME
+
+        end = position + len(chunk)
+
+        if position < 0 or end > len(track):
+            continue
+
+        track[position:end] = chunk
+
+    return bytes(track)
