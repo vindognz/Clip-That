@@ -1,7 +1,8 @@
 import numpy as np
 
 from export import *
-
+from audio import BYTES_PER_SECOND, SAMPLE_RATE
+from tests_helpers import START, BASE, pkt
 
 def pcm(*samples) -> bytes:
     """ Build fake PCM from a list of 16-bit sample values.
@@ -49,3 +50,66 @@ def test_looks_like_mp3_check():
     mp3 = pcm_to_mp3(bytes(48000 * 4 * 30))
 
     assert mp3[0] == 0xff
+
+
+
+def test_both_users_appear_with_full_length():
+    entries = {
+        1: [pkt(START, BASE)],
+        2: [pkt(START, BASE)]
+    }
+
+    tracks = render_tracks(entries, START, 3)
+
+    assert len(tracks) == 2
+    assert set(tracks) == {1, 2}
+
+    for track in tracks.values():
+        assert len(track) == 3 * BYTES_PER_SECOND
+
+def test_user_chunk_older_than_window_is_omitted():
+    entries = {1: [pkt(START-5, BASE)]}
+
+    tracks = render_tracks(entries, START, 3)
+
+    assert len(tracks) == 0
+
+def test_no_users():
+    tracks = render_tracks({}, START, 3)
+
+    assert len(tracks) == 0
+
+def test_users_with_no_entries():
+    entries = {
+        1: [],
+        2: []
+    }
+
+    tracks = render_tracks(entries, START, 3)
+
+    assert len(tracks) == 0
+
+def test_user_whose_audio_is_all_zeros_is_omitted():
+    entries = {1: [pkt(START, BASE, chunk=bytes(3840))]}
+
+    assert render_tracks(entries, START, 3) == {}
+
+def test_silent_user_omitted_but_others_stay():
+    entries = {
+        1: [pkt(START, BASE)],                   # real audio
+        2: [pkt(START, BASE, chunk=bytes(3840))] # silence
+    }
+
+    tracks = render_tracks(entries, START, 3)
+
+    assert set(tracks) == {1}
+
+def test_same_time_same_place():
+    entries = {
+        1: [pkt(START + 0.5, BASE), pkt(START + 1.5, BASE + SAMPLE_RATE)],
+        2: [pkt(START + 0.5, 3_000_000_000), pkt(START + 1.5, 3_000_000_000 + SAMPLE_RATE)]
+    }
+
+    tracks = render_tracks(entries, START, 3)
+
+    assert tracks[1] == tracks[2]
