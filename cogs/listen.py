@@ -4,7 +4,7 @@ from discord.ext import commands, voice_recv
 
 from buffers import UserBuffers
 from sink import ClipSink
-from audio import render_track
+from audio import render_track_rtp
 
 import io
 import wave
@@ -66,7 +66,7 @@ class Listen(commands.Cog):
         if not buffers.buffer:
             return await interaction.followup.send("Nothing recorded.")
 
-        window_start = time.monotonic() - 30
+        window_start = time.monotonic() - buffers.seconds
 
         files = []
         report = []
@@ -76,7 +76,7 @@ class Listen(commands.Cog):
             report.append(f"<@{user_id}>: talked for {seconds:.1f}s")
             chunks = list(dq)
             # pcm = b"".join(chunk for _, chunk in chunks)
-            pcm = render_track(chunks, window_start, 30)
+            pcm = render_track_rtp(chunks, window_start, buffers.seconds)
             files.append(discord.File(self.pcm_to_wav(pcm), f"{user_id}.wav"))
 
 

@@ -6,11 +6,11 @@ class UserBuffers:
         self.seconds = seconds
         self.buffer = defaultdict(deque) # user_id -> deque
 
-    def add(self, user_id: int, pcm: bytes):
+    def add(self, user_id: int, pcm: bytes, rtp_timestamp: int, ssrc: int):
         user_deque: deque = self.buffer[user_id]
         now = time.monotonic()
 
-        user_deque.append((now, pcm))
+        user_deque.append((now, rtp_timestamp, ssrc, pcm))
 
         # prune old entries
         cutoff = now - self.seconds

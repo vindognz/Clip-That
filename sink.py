@@ -14,7 +14,14 @@ class ClipSink(voice_recv.AudioSink):
         if user is None or user.id not in self.opted_in:
             return
 
-        self.buffers.add(user.id, data.pcm)
+        packet = data.packet
+        rtp_timestamp = getattr(packet, "timestamp", None)
+        ssrc = getattr(packet, "ssrc", None)
+
+        if rtp_timestamp is None or ssrc is None:
+            return
+
+        self.buffers.add(user.id, data.pcm, rtp_timestamp, ssrc)
 
     def cleanup(self):
         pass
