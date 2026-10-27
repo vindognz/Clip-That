@@ -5,10 +5,12 @@ from discord.ext import commands, voice_recv
 from buffers import UserBuffers
 from sink import ClipSink
 from audio import render_track_rtp
+from export import render_tracks, build_clip
 
 import io
 import wave
 import time
+import asyncio
 
 class Listen(commands.Cog):
     def __init__(self, bot):
@@ -95,6 +97,53 @@ class Listen(commands.Cog):
         await vc.disconnect()
 
         return await interaction.response.send_message("Stopped listening...", ephemeral=True)
+
+
+    @app_commands.command(name="clip", description="Save the last chunk of the call")
+    @app_commands.guild_only()
+    async def clip(self, interaction: discord.Interaction):
+        session = self.sessions.get(interaction.guild_id)
+
+        if session is None:
+            await interaction.response.send_message("I'm not currently listening.", ephemeral=True)
+            return
+
+        if not self.bot.db.is_opted_in(interaction.guild_id, interaction.user.id):
+            await interaction.response.send_message("Only opted-in people can clip.", ephemeral=True)
+            return
+
+        buffers: UserBuffers = session[1]
+        window_start = time.monotonic() - buffers.seconds
+        
+        entries = {uid: list(dq) for uid, dq in list(buffers.buffer.items())} # snapshot so audio thread can't screw with it
+
+        await interaction.response.defer()
+
+        names = {}
+        for uid in entries:
+            member = interaction.guild.get_member(uid)
+            if member:
+                names[uid] = member.name
+
+        def work():
+            tracks = render_tracks(entries, window_start, buffers.seconds)
+            return build_clip(tracks, names)
+
+        result = await asyncio.to_thread(work) # off the event loop
+
+        if result is None:
+            await interaction.followup.send("Nothing to clip.")
+            return
+
+        mixed_mp3 = result[0]
+        zip_bytes = result[1]
+
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+
+        mixed_file = discord.File(io.BytesIO(mixed_mp3), f"clip-{timestamp}.mp3")
+        zip_file = discord.File(io.BytesIO(zip_bytes), f"{timestamp}-tracks.zip")
+
+        await interaction.followup.send(files=[mixed_file, zip_file])
 
 async def setup(bot):
     await bot.add_cog(Listen(bot))
