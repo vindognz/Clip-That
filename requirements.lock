@@ -1,0 +1,31 @@
+# The exact versions the project was developed and tested with (Python 3.12, Linux x86_64).
+# Use this if a normal `pip install -r requirements.txt` ever breaks:
+#     pip install -r requirements.lock
+
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.5
+aiosignal==1.4.0
+attrs==26.1.0
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+davey==0.1.7
+discord-ext-voice_recv @ git+https://github.com/Florian-85/discord-ext-voice-recv@5f3b5f09b870d671cb9f5d6e9122f772cde7eb64
+discord.py==2.7.1
+frozenlist==1.8.0
+idna==3.20
+lameenc==1.9.0
+multidict==7.1.0
+numpy==2.5.4
+propcache==0.5.4
+pycparser==3.11
+PyNaCl==1.5.0
+python-dotenv==1.2.4
+requests==2.34.2
+srt==3.5.3
+tqdm==4.70.1
+typing_extensions==4.16.0
+urllib3==2.8.0
+vosk==0.3.45
+websockets==17.3
+yarl==1.25.1
